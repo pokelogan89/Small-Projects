@@ -32,11 +32,11 @@ class Maze:
 
         lines = list(filter(lambda x: not re.match(r'^\s*$', x), lines))
         lines = [list(line.strip('\n')) for line in lines]
-
+        
         self.rows = len(lines)
         self.cols = len(lines[0])
         self.mazeRaw = lines
-
+        
         if (len(self.mazeRaw) != self.rows) or (len(self.mazeRaw[0]) != self.cols):
             print("Maze dimensions incorrect")
             raise SystemExit
@@ -48,6 +48,7 @@ class Maze:
                     self.__start = (row, col)
                 elif self.mazeRaw[row][col] == self.__objectiveChar:
                     self.__objective.append((row, col))
+        
 
     # Returns True if the given position is the location of a wall
     def isWall(self, row, col):

@@ -22,6 +22,8 @@ files and classes when code is run, so be careful to not modify anything else.
 import math
 #from queue import PriorityQueue
 import heapq
+import maze
+import numpy as np
 
 def search(maze, searchMethod):
     return {
@@ -32,6 +34,9 @@ def search(maze, searchMethod):
         "extra": extra,
     }.get(searchMethod)(maze)
 
+def neighborCheck(maze,point):
+    neighbors = maze.getNeighbors(point[0],point[1])
+    return neighbors
 
 def sanity_check(maze, path):
     """
@@ -58,7 +63,29 @@ def bfs(maze):
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
     # TODO: Write your code here
+    obj = tuple(x for y in maze.getObjectives() for x in y)
+    start,depth,nQ,xQ,path = maze.getStart(),1,[],[],[]
+    objx,objy,sx,sy = obj[0],obj[1],start[0],start[1]
 
+    visited = np.zeros((len(maze.mazeRaw),len(maze.mazeRaw[0])),int)
+    while not visited[objx][objy]:
+        nQ,xQ = xQ,[]
+        if not visited[sx][sy]:
+            nQ.append((sx,sy))
+
+        for point in nQ:
+            px, py = point[0],point[1]
+            neighbors = neighborCheck(maze,point)
+            for p in neighbors:
+                if not (visited[p[0]][p[1]] or p in xQ):
+                    xQ.append(p)
+            visited[px][py] = depth
+
+        depth += 1 
+    
+    for i in range(depth):
+        
+    print(visited)
     pass
 
 
