@@ -38,6 +38,12 @@ def neighborCheck(maze,point):
     neighbors = maze.getNeighbors(point[0],point[1])
     return neighbors
 
+def pathGenerator(inp):
+    for j in range(len(inp)):
+        for k,l in enumerate(inp[j]):
+            yield j,k,l
+
+
 def sanity_check(maze, path):
     """
     Runs check functions for part 0 of the assignment.
@@ -64,7 +70,7 @@ def bfs(maze):
     """
     # TODO: Write your code here
     obj = tuple(x for y in maze.getObjectives() for x in y)
-    start,depth,nQ,xQ,path = maze.getStart(),1,[],[],[]
+    start,depth,nQ,xQ,path = maze.getStart(),1,[],[],[obj]
     objx,objy,sx,sy = obj[0],obj[1],start[0],start[1]
 
     visited = np.zeros((len(maze.mazeRaw),len(maze.mazeRaw[0])),int)
@@ -80,13 +86,20 @@ def bfs(maze):
                 if not (visited[p[0]][p[1]] or p in xQ):
                     xQ.append(p)
             visited[px][py] = depth
-
         depth += 1 
-    
-    for i in range(depth):
-        
-    print(visited)
-    pass
+   
+    i = 2
+
+    while i < depth - 1:
+        px,py = path[0][0],path[0][1]
+        for j,k,l in pathGenerator(visited):
+            if l == depth - i and abs(px + py - j - k) == 1 and (abs(px - j) == 0 or abs(py - k) == 0):
+                path.insert(0,(j,k))
+                break
+        i += 1
+
+    path.insert(0,start)
+    return path
 
 
 def astar(maze):
