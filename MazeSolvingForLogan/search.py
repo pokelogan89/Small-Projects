@@ -24,6 +24,8 @@ import math
 import heapq
 import maze
 import numpy as np
+import operator as op
+from time import time
 
 def search(maze, searchMethod):
     return {
@@ -33,16 +35,6 @@ def search(maze, searchMethod):
         "astar_multi": astar_multi,
         "extra": extra,
     }.get(searchMethod)(maze)
-
-def neighborCheck(maze,point):
-    neighbors = maze.getNeighbors(point[0],point[1])
-    return neighbors
-
-def pathGenerator(inp):
-    for j in range(len(inp)):
-        for k,l in enumerate(inp[j]):
-            yield j,k,l
-
 
 def sanity_check(maze, path):
     """
@@ -59,61 +51,62 @@ def sanity_check(maze, path):
     
     return False
 
-
 def bfs(maze):
-    """
-    Runs BFS for part 1 of the assignment.
-
-    @param maze: The maze to execute the search on.
-
-    @return path: a list of tuples containing the coordinates of each state in the computed path
-    """
-    # TODO: Write your code here
     obj = tuple(x for y in maze.getObjectives() for x in y)
-    start,depth,nQ,xQ,path = maze.getStart(),1,[],[],[obj]
-    objx,objy,sx,sy = obj[0],obj[1],start[0],start[1]
+    start = maze.getStart()
+    next_stack,path,back_trace = [start],[obj],{}
 
-    visited = np.zeros((len(maze.mazeRaw),len(maze.mazeRaw[0])),int)
-    while not visited[objx][objy]:
-        nQ,xQ = xQ,[]
-        if not visited[sx][sy]:
-            nQ.append((sx,sy))
+    visited = np.zeros((len(maze.mazeRaw),len(maze.mazeRaw[0])),bool)
 
-        for point in nQ:
-            px, py = point[0],point[1]
-            neighbors = neighborCheck(maze,point)
-            for p in neighbors:
-                if not (visited[p[0]][p[1]] or p in xQ):
-                    xQ.append(p)
-            visited[px][py] = depth
-        depth += 1 
-   
-    i = 2
-
-    while i < depth - 1:
-        px,py = path[0][0],path[0][1]
-        for j,k,l in pathGenerator(visited):
-            if l == depth - i and abs(px + py - j - k) == 1 and (abs(px - j) == 0 or abs(py - k) == 0):
-                path.insert(0,(j,k))
-                break
-        i += 1
-
-    path.insert(0,start)
+    while not visited[obj[0]][obj[1]]:
+        work_stack,next_stack = next_stack,[]
+        for point in work_stack:
+            neighbors = maze.getNeighbors(point[0],point[1])
+            for node in neighbors:
+                if not (node in next_stack or visited[node[0]][node[1]]):
+                    next_stack.append(node)
+                    back_trace[node] = point
+            visited[point[0]][point[1]] = True
+    
+    while path[0] != start:
+        path.insert(0,back_trace[path[0]])
     return path
 
+class inQ:
+    def __init__(self,point,depth,p1,p2):
+        self.point = point
+        self.depth = depth
+        distance = abs(p1[0] - p2[0]) + abs(p1[1] + p2[1])
+        self.weight = depth + distance
 
-def astar(maze):
-    """
-    Runs A star for part 1 of the assignment.
+def astar(maze): 
+    obj = tuple(x for y in maze.getObjectives() for x in y)
+    start = maze.getStart()
+    n_stack = [inQ(start,1,obj,start)]
+    path,back_trace = [obj],{}
 
-    @param maze: The maze to execute the search on.
+    visited = np.zeros((maze.getDimensions()[0],maze.getDimensions()[1]),bool)
 
-    @return path: a list of tuples containing the coordinates of each state in the computed path
-    """
-    # TODO: Write your code here
-    
-    pass
+    while not visited[obj[0]][obj[1]]:
+        work_obj = n_stack[0]
+        n_stack.pop(0)
+        visited[work_obj.point[0]][work_obj.point[1]] = True
+        neighbors = maze.getNeighbors(work_obj.point[0],work_obj.point[1])
 
+        for node in neighbors:
+            if not (node in n_stack or visited[node[0]][node[1]]):
+                sQ = inQ(node,work_obj.depth + 1,obj,node)
+                back_trace[sQ.point] = work_obj.point
+                if not n_stack:
+                    n_stack.append(sQ)
+                    continue
+                for i,w_comp in enumerate(n_stack):
+                    if sQ.weight < w_comp.weight or i == len(n_stack) - 1:
+                        n_stack.insert(i,sQ)
+                        break   
+    while path[0] != start:
+        path.insert(0,back_trace[path[0]])
+    return path
 
 def astar_corner(maze):
     """
