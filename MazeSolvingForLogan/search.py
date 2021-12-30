@@ -22,10 +22,12 @@ files and classes when code is run, so be careful to not modify anything else.
 import math
 #from queue import PriorityQueue
 import heapq
+
+from numpy.core.shape_base import stack
 import maze
 import numpy as np
 import operator as op
-from time import time
+import time
 
 def search(maze, searchMethod):
     return {
@@ -72,38 +74,47 @@ def bfs(maze):
         path.insert(0,back_trace[path[0]])
     return path
 
+#Used for astar
 class inQ:
     def __init__(self,point,depth,p1,p2):
         self.point = point
-        self.depth = depth
+        self.depth = depth #Distance travelled
         distance = abs(p1[0] - p2[0]) + abs(p1[1] + p2[1])
-        self.weight = depth + distance
+        self.weight = depth + distance #Distance travelled + theoretical distance to finish
 
-def astar(maze): 
-    obj = tuple(x for y in maze.getObjectives() for x in y)
+def astar(maze):
+    objective = tuple(x for y in maze.getObjectives() for x in y)
     start = maze.getStart()
-    n_stack = [inQ(start,1,obj,start)]
-    path,back_trace = [obj],{}
+    search_Q = [inQ(start,1,objective,start)]
+
+    #Defining list of nodes in queue, path list, and dictionary to store path to path relations
+    node_list,path,back_trace = [],[objective],{}
 
     visited = np.zeros((maze.getDimensions()[0],maze.getDimensions()[1]),bool)
 
-    while not visited[obj[0]][obj[1]]:
-        work_obj = n_stack[0]
-        n_stack.pop(0)
+    while not visited[objective[0]][objective[1]]:
+        work_obj = search_Q.pop(0)
         visited[work_obj.point[0]][work_obj.point[1]] = True
+        if node_list:
+            node_list.remove(work_obj.point)
+
+        #Finding all the possible neighbor coordinates in the maze that can be travelled to
         neighbors = maze.getNeighbors(work_obj.point[0],work_obj.point[1])
 
         for node in neighbors:
-            if not (node in n_stack or visited[node[0]][node[1]]):
-                sQ = inQ(node,work_obj.depth + 1,obj,node)
-                back_trace[sQ.point] = work_obj.point
-                if not n_stack:
-                    n_stack.append(sQ)
+            if not (node in node_list or visited[node[0]][node[1]]):
+                node_obj = inQ(node,work_obj.depth + 1,objective,node)
+                back_trace[node_obj.point] = work_obj.point
+                node_list.append(node)
+
+                if not search_Q:
+                    search_Q.append(node_obj)
                     continue
-                for i,w_comp in enumerate(n_stack):
-                    if sQ.weight < w_comp.weight or i == len(n_stack) - 1:
-                        n_stack.insert(i,sQ)
-                        break   
+
+                for i,weight_comp in enumerate(search_Q):
+                    if node_obj.weight < weight_comp.weight or i == len(search_Q) - 1:
+                        search_Q.insert(i,node_obj)
+                        break
     while path[0] != start:
         path.insert(0,back_trace[path[0]])
     return path
