@@ -1,8 +1,7 @@
 def main():
-    filename = "bigMaze.txt"
-    with open(filename) as f:
-        lines = f.readlines()
-
-    print(lines[0])
-
+    x = [0,1]
+    y = tuple(x)
+    print(x,y)
+    return None
+    
 main()

@@ -76,16 +76,26 @@ def bfs(maze):
 
 #Used for astar
 class inQ:
-    def __init__(self,point,depth,p1,p2):
+    def __init__(self,point,depth,objs,p2):
+        distance = -1
         self.point = point
         self.depth = depth #Distance travelled
-        distance = abs(p1[0] - p2[0]) + abs(p1[1] + p2[1])
+        for obj in objs:
+            if distance < 0:
+                distance = abs(obj[0] - p2[0]) + abs(obj[1] - p2[1])
+                self.obj = (obj[0],obj[1])
+                continue
+            if distance > abs(obj[0] - p2[0]) + abs(obj[1] - p2[1]):
+                distance = abs(obj[0] - p2[0]) + abs(obj[1] - p2[1])
+                self.obj = (obj[0],obj[1])
+        self.distance = distance
         self.weight = depth + distance #Distance travelled + theoretical distance to finish
 
 def astar(maze):
-    objective = tuple(x for y in maze.getObjectives() for x in y)
+    objective_l = maze.getObjectives()
+    objective = objective_l[0]
     start = maze.getStart()
-    search_Q = [inQ(start,1,objective,start)]
+    search_Q = [inQ(start,1,objective_l,start)]
 
     #Defining list of nodes in queue, path list, and dictionary to store path to path relations
     node_list,path,back_trace = [],[objective],{}
@@ -103,7 +113,7 @@ def astar(maze):
 
         for node in neighbors:
             if not (node in node_list or visited[node[0]][node[1]]):
-                node_obj = inQ(node,work_obj.depth + 1,objective,node)
+                node_obj = inQ(node,work_obj.depth + 1,objective_l,node)
                 back_trace[node_obj.point] = work_obj.point
                 node_list.append(node)
 
@@ -112,24 +122,77 @@ def astar(maze):
                     continue
 
                 for i,weight_comp in enumerate(search_Q):
-                    if node_obj.weight < weight_comp.weight or i == len(search_Q) - 1:
+                    if node_obj.weight < weight_comp.weight:
                         search_Q.insert(i,node_obj)
                         break
+
+                if node_obj not in search_Q:
+                    search_Q.append(node_obj)
     while path[0] != start:
         path.insert(0,back_trace[path[0]])
     return path
 
 def astar_corner(maze):
-    """
-    Runs A star for part 2 of the assignment in the case where there are four corner objectives.
+    objective = maze.getObjectives()
+    start = maze.getStart()
+    search_Q = [inQ(start,1,objective,start)]
 
-    @param maze: The maze to execute the search on.
+    #Defining list of nodes in queue, path list, and dictionary to store path to path relations
+    path,objectives_visited,node_list,back_trace = [],[start],[],{}
 
-    @return path: a list of tuples containing the coordinates of each state in the computed path
-        """
-    # TODO: Write your code here
+    visited = np.zeros((maze.getDimensions()[0],maze.getDimensions()[1]),bool)
+    visited_mut = np.copy(visited)
 
-    pass
+    while objective:
+        work_obj = search_Q.pop(0)
+        visited_mut[work_obj.point[0]][work_obj.point[1]] = True
+        
+        if node_list:
+            node_list.remove(work_obj.point)
+
+        #Finding all the possible neighbor coordinates in the maze that can be travelled to
+        neighbors = maze.getNeighbors(work_obj.point[0],work_obj.point[1])
+        
+        for node in neighbors:
+            if not (node in node_list or visited_mut[node[0]][node[1]]):
+                node_obj = inQ(node,work_obj.depth + 1,objective,node)
+
+                back_trace[node_obj.point] = work_obj.point
+
+                if node_obj.distance == 0:
+                    objectives_visited.insert(0,node_obj.obj)
+                    objective.remove(node_obj.obj)
+                    visited[node_obj.obj[0]][node_obj.obj[1]] = True
+                    visited_mut = np.copy(visited)
+                    node_list,search_Q = [],[inQ(node_obj.obj,1,objective,node_obj.obj)]
+                    
+                    path_mut = [objectives_visited[0]]
+                        
+                    while path_mut[0] != objectives_visited[1]:
+                        path_mut.insert(0,back_trace[path_mut[0]])
+
+                    back_trace = {}
+                    path_mut.pop(0)
+
+                    for point in path_mut:
+                        path.append(point)
+                    break
+
+                node_list.append(node)
+
+                if not search_Q:
+                    search_Q.append(node_obj)
+                    continue
+                
+                for i,weight_comp in enumerate(search_Q):
+                    if node_obj.weight < weight_comp.weight:
+                        search_Q.insert(i,node_obj)
+                        break
+
+                if node_obj not in search_Q:
+                    search_Q.append(node_obj)
+    path.insert(0,start)
+    return path 
 
 def astar_multi(maze):
     """
@@ -145,7 +208,7 @@ def astar_multi(maze):
     pass
 
 def extra(maze):
-    """
+    """ 
     Runs suboptimal search algorithm for part 4.
 
     @param maze: The maze to execute the search on.
