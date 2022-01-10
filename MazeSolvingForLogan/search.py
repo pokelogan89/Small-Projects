@@ -132,7 +132,69 @@ def astar(maze):
         path.insert(0,back_trace[path[0]])
     return path
 
-def astar_corner(maze):
+def astar_corner(maze): #Without path comparison, always goes for nearest objective
+    objective = maze.getObjectives()
+    start = maze.getStart()
+    search_Q = [inQ(start,1,objective,start)]
+
+    #Defining list of nodes in queue, path list, and dictionary to store path to path relations
+    path,objectives_visited,node_list,back_trace = [],[start],[],{}
+
+    visited = np.zeros((maze.getDimensions()[0],maze.getDimensions()[1]),bool)
+    visited_mut = np.copy(visited)
+
+    while objective:
+        work_obj = search_Q.pop(0)
+        visited_mut[work_obj.point[0]][work_obj.point[1]] = True
+        
+        if node_list:
+            node_list.remove(work_obj.point)
+
+        #Finding all the possible neighbor coordinates in the maze that can be travelled to
+        neighbors = maze.getNeighbors(work_obj.point[0],work_obj.point[1])
+        
+        for node in neighbors:
+            if not (node in node_list or visited_mut[node[0]][node[1]]):
+                node_obj = inQ(node,work_obj.depth + 1,objective,node)
+
+                back_trace[node_obj.point] = work_obj.point
+
+                if node_obj.distance == 0:
+                    objectives_visited.insert(0,node_obj.obj)
+                    objective.remove(node_obj.obj)
+                    visited[node_obj.obj[0]][node_obj.obj[1]] = True
+                    visited_mut = np.copy(visited)
+                    node_list,search_Q = [],[inQ(node_obj.obj,1,objective,node_obj.obj)]
+                    
+                    path_mut = [objectives_visited[0]]
+                        
+                    while path_mut[0] != objectives_visited[1]:
+                        path_mut.insert(0,back_trace[path_mut[0]])
+
+                    back_trace = {}
+                    path_mut.pop(0)
+
+                    for point in path_mut:
+                        path.append(point)
+                    break
+
+                node_list.append(node)
+
+                if not search_Q:
+                    search_Q.append(node_obj)
+                    continue
+                
+                for i,weight_comp in enumerate(search_Q):
+                    if node_obj.weight < weight_comp.weight:
+                        search_Q.insert(i,node_obj)
+                        break
+
+                if node_obj not in search_Q:
+                    search_Q.append(node_obj)
+    path.insert(0,start)
+    return path 
+
+#def astar_corner(maze): #with path comparison, checking for backtracking
     objective = maze.getObjectives()
     start = maze.getStart()
     search_Q = [inQ(start,1,objective,start)]
